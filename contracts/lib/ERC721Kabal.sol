@@ -2,12 +2,11 @@
 pragma solidity >=0.8.0;
 
 import "./Owned.sol";
-import "./IERC6147.sol";
 
-/// @notice ERC-6147 SBT implementation of Solmate's ERC-721.
+/// @notice Simple SBT implementation of Solmate's ERC-721.
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
 /// @author 0xFueki (https://x.com/0xFueki)
-abstract contract ERC721 is Owned, IERC6147 {
+abstract contract ERC721 is Owned {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -67,15 +66,8 @@ abstract contract ERC721 is Owned, IERC6147 {
     mapping(address => mapping(address => bool)) public isApprovedForAll;
 
     /*//////////////////////////////////////////////////////////////
-                         ERC6147 GUARD STORAGE/LOGIC
+                         SBT STORAGE/LOGIC
     //////////////////////////////////////////////////////////////*/
-
-    struct GuardInfo {
-        address guard;
-        uint64 expires;
-    }
-
-    mapping(uint256 => GuardInfo) internal _guardInfo;
 
     bool isPublicTransferAllowed;
 
@@ -92,21 +84,13 @@ abstract contract ERC721 is Owned, IERC6147 {
                               ERC6147 LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    function transferAndRemove(
-        // ERC6147 _from is not used but required for interface compliance.
-        address _from,
+    function transferSBT(
         address to,
         uint256 id
-    ) public virtual {
-        address guard = _checkGuard(id);
+    ) public virtual onlyOwnerAndWhitelist {
+        require(!isPublicTransferAllowed, "SBT_NOT_ALLOWED");
+
         address from = ownerOf(id);
-
-        require(guard != address(0), "ERC6147: token id has no guard");
-
-        require(
-            msg.sender != guard,
-            "ERC6147: transfer caller is not assigned guard"
-        );
 
         require(to != address(0), "INVALID_RECIPIENT");
 
@@ -122,66 +106,12 @@ abstract contract ERC721 is Owned, IERC6147 {
 
         delete getApproved[id];
 
-        removeGuard(id);
-
         emit Transfer(from, to, id);
     }
 
-    function togglePublicTransfer() public virtual onlyOwner {
-        isPublicTransferAllowed = !isPublicTransferAllowed;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        INTERNAL ERC6147 LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function _updateGuard(
-        uint256 id,
-        address newGuard,
-        uint64 expires,
-        bool allowNull
-    ) internal {
-        address guard = _guardInfo[id].guard;
-        if (!allowNull) {
-            require(
-                newGuard != address(0),
-                "ERC6147: new guard can not be null"
-            );
-        }
-        if (guard != address(0)) {
-            require(
-                guard == msg.sender,
-                "ERC6147: only guard can change it self"
-            );
-        } else {
-            require(
-                msg.sender == owner,
-                "ERC6147: caller is not owner nor approved"
-            );
-        }
-
-        if (guard != address(0) || newGuard != address(0)) {
-            _guardInfo[id] = GuardInfo(newGuard, expires);
-            emit UpdateGuardLog(id, newGuard, guard, expires);
-        }
-    }
-
-    function _checkGuard(uint256 id) internal view returns (address) {
-        address guard = _guardInfo[id].guard;
-        address sender = msg.sender;
-        if (guard != address(0)) {
-            require(
-                guard == sender,
-                "ERC6147: sender is not guard of the token"
-            );
-            return guard;
-        } else {
-            return address(0);
-        }
-    }
-
-    function removeGuard(uint256 tokenId) public virtual {
-        _updateGuard(tokenId, address(0), 0, true);
+    // One way street to turn SBT into NFT.
+    function enablePublicTransfer() public virtual onlyOwner {
+        isPublicTransferAllowed = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -189,6 +119,8 @@ abstract contract ERC721 is Owned, IERC6147 {
     //////////////////////////////////////////////////////////////*/
 
     function approve(address spender, uint256 id) public virtual {
+        require(isPublicTransferAllowed, "TRANSFER_NOT_ALLOWED");
+
         address owner = _ownerOf[id];
 
         require(
@@ -202,6 +134,8 @@ abstract contract ERC721 is Owned, IERC6147 {
     }
 
     function setApprovalForAll(address operator, bool approved) public virtual {
+        require(isPublicTransferAllowed, "TRANSFER_NOT_ALLOWED");
+
         isApprovedForAll[msg.sender][operator] = approved;
 
         emit ApprovalForAll(msg.sender, operator, approved);
@@ -287,8 +221,7 @@ abstract contract ERC721 is Owned, IERC6147 {
         return
             interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
             interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            interfaceId == 0x5b5e139f || // ERC165 Interface ID for ERC721Metadata
-            interfaceId == type(IERC6147).interfaceId; // ERC6147 Interface ID for ERC721Metadata
+            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
     }
 
     /*//////////////////////////////////////////////////////////////
