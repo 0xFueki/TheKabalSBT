@@ -16,8 +16,16 @@ abstract contract Owned {
 
     address public owner;
 
+    mapping(address => bool) public whitelist;
+
     modifier onlyOwner() virtual {
         require(msg.sender == owner, "UNAUTHORIZED");
+
+        _;
+    }
+
+    modifier onlyOwnerAndWhitelist() virtual {
+        require(msg.sender == owner || whitelist[msg.sender], "UNAUTHORIZED");
 
         _;
     }
@@ -40,5 +48,13 @@ abstract contract Owned {
         owner = newOwner;
 
         emit OwnershipTransferred(msg.sender, newOwner);
+    }
+
+    function addWhitelist(address newWhitelist) public virtual onlyOwner {
+        whitelist[newWhitelist] = true;
+    }
+
+    function removeWhitelist(address newWhitelist) public virtual onlyOwner {
+        delete whitelist[newWhitelist];
     }
 }
