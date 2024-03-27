@@ -65,11 +65,7 @@ abstract contract ERC721 is Owned {
 
     mapping(address => mapping(address => bool)) public isApprovedForAll;
 
-    /*//////////////////////////////////////////////////////////////
-                         SBT STORAGE/LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    bool isPublicTransferAllowed;
+    bool isTransferEnabled;
 
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
@@ -87,8 +83,8 @@ abstract contract ERC721 is Owned {
     function transferSBT(
         address to,
         uint256 id
-    ) public virtual onlyOwnerAndWhitelist {
-        require(!isPublicTransferAllowed, "SBT_NOT_ALLOWED");
+    ) public virtual onlyOwnerAndAdmins {
+        require(!isTransferEnabled, "SBT_TRANSFER_NOT_ALLOWED");
 
         address from = ownerOf(id);
 
@@ -110,8 +106,8 @@ abstract contract ERC721 is Owned {
     }
 
     // One way street to turn SBT into NFT.
-    function enablePublicTransfer() public virtual onlyOwner {
-        isPublicTransferAllowed = true;
+    function enableTransfer() public virtual onlyOwner {
+        isTransferEnabled = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -119,7 +115,7 @@ abstract contract ERC721 is Owned {
     //////////////////////////////////////////////////////////////*/
 
     function approve(address spender, uint256 id) public virtual {
-        require(isPublicTransferAllowed, "TRANSFER_NOT_ALLOWED");
+        require(isTransferEnabled, "TRANSFER_NOT_ALLOWED");
 
         address owner = _ownerOf[id];
 
@@ -134,7 +130,7 @@ abstract contract ERC721 is Owned {
     }
 
     function setApprovalForAll(address operator, bool approved) public virtual {
-        require(isPublicTransferAllowed, "TRANSFER_NOT_ALLOWED");
+        require(isTransferEnabled, "TRANSFER_NOT_ALLOWED");
 
         isApprovedForAll[msg.sender][operator] = approved;
 
@@ -142,7 +138,7 @@ abstract contract ERC721 is Owned {
     }
 
     function transferFrom(address from, address to, uint256 id) public virtual {
-        require(isPublicTransferAllowed, "TRANSFER_NOT_ALLOWED");
+        require(isTransferEnabled, "TRANSFER_NOT_ALLOWED");
 
         require(from == _ownerOf[id], "WRONG_FROM");
 
