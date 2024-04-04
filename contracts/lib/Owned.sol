@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0;
 
 /// @notice Simple single owner authorization mixin.
+/// @notice Slightly modified by @0xFueki for The Kabal.
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/auth/Owned.sol)
 abstract contract Owned {
     /*//////////////////////////////////////////////////////////////
@@ -24,7 +25,7 @@ abstract contract Owned {
         _;
     }
 
-    modifier onlyOwnerAndAdmins() virtual {
+    modifier onlyAdmins() virtual {
         require(msg.sender == owner || admins[msg.sender], "UNAUTHORIZED");
 
         _;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity >=0.8.0;
 
 import "./lib/Owned.sol";
 
@@ -7,16 +7,8 @@ interface TheKabal {
     function mint(address to, uint256 id) external;
 }
 
-contract Minter is Owned {
-    /*//////////////////////////////////////////////////////////////
-                            Errors
-    //////////////////////////////////////////////////////////////*/
-
-    error SenderNotMinter();
-
-    /*//////////////////////////////////////////////////////////////
-                            Storage
-    //////////////////////////////////////////////////////////////*/
+contract TheKabalMinter is Owned {
+    /* (•_• ) Storage (•_• ) */
 
     address launchpadAddress;
 
@@ -24,24 +16,20 @@ contract Minter is Owned {
 
     address tokenAddress;
 
-    /*//////////////////////////////////////////////////////////////
-                            Constructor
-    //////////////////////////////////////////////////////////////*/
+    /* (•_• ) Constructor (•_• ) */
 
     constructor(address _launchpadAddress) Owned(msg.sender) {
         launchpadAddress = _launchpadAddress;
     }
 
-    /*//////////////////////////////////////////////////////////////
-                            Launchpad Logic
-    //////////////////////////////////////////////////////////////*/
+    /* (•_• ) Mint Logic (•_• ) */
 
     function setLaunchpadAddress(address _launchpadAddress) external onlyOwner {
         launchpadAddress = _launchpadAddress;
     }
 
     modifier onlyLaunchpad() {
-        if (msg.sender != launchpadAddress) revert SenderNotMinter();
+        require(msg.sender == launchpadAddress, "NOT_LAUNCHPAD_ADDRESS");
         _;
     }
 
@@ -55,9 +43,7 @@ contract Minter is Owned {
         TheKabal(tokenAddress).mint(to, tokenId);
     }
 
-    /*//////////////////////////////////////////////////////////////
-                            Setup
-    //////////////////////////////////////////////////////////////*/
+    /* (•_• ) Admin Logic (•_• ) */
 
     function setAvailableTokenIds(
         address[] calldata tos,

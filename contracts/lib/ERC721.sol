@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import "./Owned.sol";
-
-/// @notice Simple SBT implementation of Solmate's ERC-721.
+/// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
+/// @notice Slightly modified by @0xFueki for The Kabal.
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
-/// @author 0xFueki (https://x.com/0xFueki)
-abstract contract ERC721 is Owned {
+abstract contract ERC721 {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -37,6 +35,8 @@ abstract contract ERC721 is Owned {
 
     string public symbol;
 
+    uint256 public totalSupply;
+
     function tokenURI(uint256 id) public view virtual returns (string memory);
 
     /*//////////////////////////////////////////////////////////////
@@ -65,49 +65,13 @@ abstract contract ERC721 is Owned {
 
     mapping(address => mapping(address => bool)) public isApprovedForAll;
 
-    bool isTransferEnabled;
-
     /*//////////////////////////////////////////////////////////////
                                CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(string memory _name, string memory _symbol) Owned(msg.sender) {
+    constructor(string memory _name, string memory _symbol) {
         name = _name;
         symbol = _symbol;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                              ERC6147 LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function transferSBT(
-        address to,
-        uint256 id
-    ) public virtual onlyOwnerAndAdmins {
-        require(!isTransferEnabled, "SBT_TRANSFER_NOT_ALLOWED");
-
-        address from = ownerOf(id);
-
-        require(to != address(0), "INVALID_RECIPIENT");
-
-        // Underflow of the sender's balance is impossible because we check for
-        // ownership above and the recipient's balance can't realistically overflow.
-        unchecked {
-            _balanceOf[from]--;
-
-            _balanceOf[to]++;
-        }
-
-        _ownerOf[id] = to;
-
-        delete getApproved[id];
-
-        emit Transfer(from, to, id);
-    }
-
-    // One way street to turn SBT into NFT.
-    function enableTransfer() public virtual onlyOwner {
-        isTransferEnabled = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -115,8 +79,6 @@ abstract contract ERC721 is Owned {
     //////////////////////////////////////////////////////////////*/
 
     function approve(address spender, uint256 id) public virtual {
-        require(isTransferEnabled, "TRANSFER_NOT_ALLOWED");
-
         address owner = _ownerOf[id];
 
         require(
@@ -130,19 +92,13 @@ abstract contract ERC721 is Owned {
     }
 
     function setApprovalForAll(address operator, bool approved) public virtual {
-        require(isTransferEnabled, "TRANSFER_NOT_ALLOWED");
-
         isApprovedForAll[msg.sender][operator] = approved;
 
         emit ApprovalForAll(msg.sender, operator, approved);
     }
 
     function transferFrom(address from, address to, uint256 id) public virtual {
-        require(isTransferEnabled, "TRANSFER_NOT_ALLOWED");
-
         require(from == _ownerOf[id], "WRONG_FROM");
-
-        require(to != address(0), "INVALID_RECIPIENT");
 
         require(
             msg.sender == from ||
@@ -151,19 +107,7 @@ abstract contract ERC721 is Owned {
             "NOT_AUTHORIZED"
         );
 
-        // Underflow of the sender's balance is impossible because we check for
-        // ownership above and the recipient's balance can't realistically overflow.
-        unchecked {
-            _balanceOf[from]--;
-
-            _balanceOf[to]++;
-        }
-
-        _ownerOf[id] = to;
-
-        delete getApproved[id];
-
-        emit Transfer(from, to, id);
+        _transfer(from, to, id);
     }
 
     function safeTransferFrom(
@@ -208,6 +152,28 @@ abstract contract ERC721 is Owned {
     }
 
     /*//////////////////////////////////////////////////////////////
+                        INTERNAL TRANSFER LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function _transfer(address from, address to, uint256 id) internal virtual {
+        require(to != address(0), "INVALID_RECIPIENT");
+
+        // Underflow of the sender's balance is impossible because we check for
+        // ownership above and the recipient's balance can't realistically overflow.
+        unchecked {
+            _balanceOf[from]--;
+
+            _balanceOf[to]++;
+        }
+
+        _ownerOf[id] = to;
+
+        delete getApproved[id];
+
+        emit Transfer(from, to, id);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                               ERC165 LOGIC
     //////////////////////////////////////////////////////////////*/
 
@@ -232,6 +198,8 @@ abstract contract ERC721 is Owned {
         // Counter overflow is incredibly unrealistic.
         unchecked {
             _balanceOf[to]++;
+
+            totalSupply++;
         }
 
         _ownerOf[id] = to;
@@ -247,6 +215,8 @@ abstract contract ERC721 is Owned {
         // Ownership check above ensures no underflow.
         unchecked {
             _balanceOf[owner]--;
+
+            totalSupply--;
         }
 
         delete _ownerOf[id];
