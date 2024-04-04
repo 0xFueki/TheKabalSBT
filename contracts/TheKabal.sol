@@ -40,6 +40,8 @@ contract TheKabal is ERC721, Owned {
 
     bool transferLock = true;
 
+    bool transferLockRevoked = false;
+
     /* (•_• ) Constructor (•_• ) */
 
     constructor() ERC721("The Kabal", "KABAL") Owned(msg.sender) {}
@@ -153,6 +155,8 @@ contract TheKabal is ERC721, Owned {
     }
 
     function transferSBT(address to, uint256 id) public onlyAdmins {
+        require(transferLock, "TRANSFER_UNLOCKED");
+
         address from = _ownerOf[id];
 
         require(from != address(0), "NOT_MINTED");
@@ -160,8 +164,14 @@ contract TheKabal is ERC721, Owned {
         _transfer(from, to, id);
     }
 
-    function toggleTransfer(bool toggle) external onlyOwner {
-        transferLock = toggle;
+    function setTransferLock(bool _transferLock) external onlyOwner {
+        require(!transferLockRevoked, "TRANSFER_LOCK_REVOKED");
+
+        transferLock = _transferLock;
+    }
+
+    function revokeTransferLock() external onlyOwner {
+        transferLockRevoked = true;
     }
 
     /* (•_• ) Metadata Logic (•_• ) */
