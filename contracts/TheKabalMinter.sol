@@ -3,26 +3,28 @@ pragma solidity >=0.8.0;
 
 import "./lib/Owned.sol";
 
-interface TheKabal {
+interface ITheKabal {
     function mint(address to, uint256 id) external;
 }
 
 contract TheKabalMinter is Owned {
     /* (•_• ) Storage (•_• ) */
 
-    address launchpadAddress;
+    address public launchpadAddress;
 
-    mapping(address => uint256) addressToTokenId;
+    mapping(address => uint256) public addressToTokenId;
 
-    address tokenAddress;
+    address public tokenAddress;
 
     /* (•_• ) Constructor (•_• ) */
 
-    constructor(address _launchpadAddress) Owned(msg.sender) {
-        launchpadAddress = _launchpadAddress;
-    }
+    constructor() Owned(msg.sender) {}
 
     /* (•_• ) Mint Logic (•_• ) */
+
+    function setTokenAddress(address _tokenAddress) external onlyOwner {
+        tokenAddress = _tokenAddress;
+    }
 
     function setLaunchpadAddress(address _launchpadAddress) external onlyOwner {
         launchpadAddress = _launchpadAddress;
@@ -40,7 +42,7 @@ contract TheKabalMinter is Owned {
 
         addressToTokenId[to] = 0;
 
-        TheKabal(tokenAddress).mint(to, tokenId);
+        ITheKabal(tokenAddress).mint(to, tokenId);
     }
 
     /* (•_• ) Admin Logic (•_• ) */

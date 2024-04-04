@@ -207,7 +207,7 @@ contract TheKabal is ERC721, Owned {
         require(_ownerOf[_tokenId] != address(0), "NOT_MINTED");
 
         if (address(metadataAddress) != address(0)) {
-            return IAsuraMetadata(metadataAddress).tokenURI(_tokenId);
+            return IMetadata(metadataAddress).tokenURI(_tokenId);
         }
 
         return
